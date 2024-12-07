@@ -71,17 +71,18 @@ class YOLODetector:
 class DetectionThread(QThread):
     update_frame = pyqtSignal(np.ndarray, list)  # Thêm list để truyền detections
 
-    def __init__(self, detector, input_source, target_objects, object_colors):
+    def __init__(self, detector, input_source, target_objects, object_colors, info_list=None):
         super().__init__()
         self.detector = detector
         self.input_source = input_source
         self.target_objects = target_objects
         self.object_colors = object_colors
+        self.info_list = info_list
         self.running = True
         self.paused = False
         self.current_frame = 0
-        self.frame_cache = {}  # Cache để lưu kết quả đã xử lý
-        self.cache_size = 30  # Số frame tối đa được cache
+        self.frame_cache = {}
+        self.cache_size = 30
 
     def set_frame_position(self, frame_number):
         """Đặt vị trí frame hiện tại"""
@@ -116,7 +117,16 @@ class DetectionThread(QThread):
     def run(self):
         try:
             if self.input_source == "Camera":
-                cap = cv2.VideoCapture(1)
+                # Thử các camera index khác nhau
+                for camera_index in [0, 1, 2]:  # Thử camera 0, 1, 2
+                    cap = cv2.VideoCapture(camera_index)
+                    if cap.isOpened():
+                        self.info_list.addItem(f"Đã kết nối với camera {camera_index}")
+                        break
+                    cap.release()
+                else:  # Nếu không tìm thấy camera nào
+                    print("Không thể kết nối với camera")
+                    return
             else:
                 # Thêm các flag để xử lý video tốt hơn
                 cap = cv2.VideoCapture(self.input_source, cv2.CAP_FFMPEG)
@@ -128,7 +138,7 @@ class DetectionThread(QThread):
 
             self.cap = cap
 
-            # Lấy thông tin video
+            # Lấy thông tin video/camera
             fps = cap.get(cv2.CAP_PROP_FPS)
             frame_delay = int(1000 / fps) if fps > 0 else 30
 
@@ -139,28 +149,32 @@ class DetectionThread(QThread):
 
                 ret, frame = cap.read()
                 if not ret:
-                    break
+                    if self.input_source == "Camera":  # Nếu là camera, thử đọc frame tiếp
+                        continue
+                    else:  # Nếu là video, dừng lại
+                        break
 
                 try:
-                    current_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-
-                    if current_pos in self.frame_cache:
-                        frame, detections = self.frame_cache[current_pos]
+                    if self.input_source != "Camera":
+                        current_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
                     else:
-                        detections = self.detector.detect(frame, self.target_objects)
-                        frame = draw_detections(frame, detections, self.object_colors)
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        current_pos = 0  # Camera không có concept về frame position
 
+                    detections = self.detector.detect(frame, self.target_objects)
+                    frame = draw_detections(frame, detections, self.object_colors)
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                    if self.input_source != "Camera":  # Chỉ cache cho video
                         self.frame_cache[current_pos] = (frame.copy(), detections)
                         if len(self.frame_cache) > self.cache_size:
                             oldest_frame = min(self.frame_cache.keys())
                             del self.frame_cache[oldest_frame]
 
                     self.update_frame.emit(frame, detections)
-                    self.msleep(frame_delay)  # Đồng bộ với FPS của video
+                    self.msleep(frame_delay)
 
                 except Exception as e:
-                    print(f"Lỗi xử lý frame {current_pos}: {str(e)}")
+                    print(f"Lỗi xử lý frame: {str(e)}")
                     continue
 
             cap.release()

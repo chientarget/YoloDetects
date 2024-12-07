@@ -134,6 +134,11 @@ class MainWindow(QMainWindow):
         self.start_button.clicked.connect(self.start_detection)
         self.stop_button.clicked.connect(self.stop_detection)
 
+        # Thêm nút Camera Detection
+        self.camera_button = ModernButton("Camera Detection", "#9C27B0")  # Màu tím
+        self.camera_button.clicked.connect(self.start_camera_detection)
+        layout.addWidget(self.camera_button)
+
         layout.addStretch()
         panel.setLayout(layout)
         return panel
@@ -389,12 +394,13 @@ class MainWindow(QMainWindow):
                 self.detector,
                 self.input_source if hasattr(self, 'input_source') else "Camera",
                 selected_objects,
-                self.object_colors
+                self.object_colors,
+                self.info_list
             )
             self.detection_thread.update_frame.connect(self.update_display)
             self.detection_thread.start()
 
-            self.info_list.addItem("Bắt đầu phát hiện đối tượng...")
+            self.info_list.addItem("Bắt đầu phát hiện ��ối tượng...")
         except Exception as e:
             self.info_list.addItem(f"Lỗi khi bắt đầu phát hiện: {str(e)}")
 
@@ -527,6 +533,51 @@ class MainWindow(QMainWindow):
             self.info_list.addItem(f"Đã tải {len(video_files)} video từ thư mục videos")
         else:
             self.info_list.addItem("Không tìm thấy video trong thư mục videos")
+
+    def start_camera_detection(self):
+        try:
+            # Dừng detection thread hiện tại nếu đang chạy
+            if hasattr(self, 'detection_thread') and self.detection_thread.isRunning():
+                self.detection_thread.stop()
+                self.detection_thread.wait()
+
+            selected_objects = [item.text().lower() for item in self.object_list.selectedItems()]
+            if not selected_objects:
+                self.info_list.addItem("Vui lòng chọn ít nhất một đối tượng để phát hiện!")
+                return
+
+            # Khởi tạo detector
+            model = self.model_combo.currentText()
+            if model not in YOLO_CONFIGS:
+                self.info_list.addItem("Model không hợp lệ!")
+                return
+
+            config = YOLO_CONFIGS[model]
+            try:
+                self.detector = YOLODetector(
+                    config['weights'],
+                    config['config'],
+                    config['conf_threshold'],
+                    config['nms_threshold']
+                )
+            except Exception as e:
+                self.info_list.addItem(f"Lỗi khởi tạo model: {str(e)}")
+                return
+
+            # Khởi tạo detection thread với nguồn là camera
+            self.detection_thread = DetectionThread(
+                self.detector,
+                "Camera",
+                selected_objects,
+                self.object_colors,
+                self.info_list
+            )
+            self.detection_thread.update_frame.connect(self.update_display)
+            self.detection_thread.start()
+
+            self.info_list.addItem("Bắt đầu nhận diện qua camera...")
+        except Exception as e:
+            self.info_list.addItem(f"Lỗi khi khởi động camera: {str(e)}")
 
 
 if __name__ == "__main__":

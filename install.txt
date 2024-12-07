@@ -1,0 +1,7 @@
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+pip install opencv-python
+pip uninstall opencv-python
+pip install opencv-python-headless-cuda
+pip install pycocotools
+pip install fiftyone
+pip install ultralytics  # cho YOLOv5+
