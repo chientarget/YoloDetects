@@ -7,7 +7,7 @@ Dự án này được phát triển như một phần của môn học Xử Lý
 - Giảng viên hướng dẫn: **LƯƠNG THỊ HỒNG LAN**
 - Ngày báo cáo: 07/12/2024
 ## Thành Viên Nhóm
-- **Nguyễn Huy Chiến**
+- **Nguyễn Huy Chiến ( Trưởng nhóm )**
 - Trần Tùng Dương
 - Lê Đức Anh
 - Đỗ Thị Vân
