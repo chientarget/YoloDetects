@@ -74,5 +74,4 @@ Dự án này được phát triển như một phần của môn học Xử Lý
 - GitHub: [GitHub Chientarget](https://github.com/chientarget)
 
 ---
-*Dự án này được phát triển cho mục đích học tập và nghiên cứu. Trích nguồn khi sử dụng dự án này.
-*
+*Dự án này được phát triển cho mục đích học tập và nghiên cứu. Trích nguồn khi sử dụng dự án này.*
